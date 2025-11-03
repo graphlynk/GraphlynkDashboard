@@ -58,8 +58,9 @@
       port: 5000,
       strictPort: true,
       hmr: {
-        clientPort: 443,
         protocol: 'wss',
+        clientPort: 443,
+        host: process.env.REPLIT_DEV_DOMAIN || 'localhost',
       },
     },
   });
