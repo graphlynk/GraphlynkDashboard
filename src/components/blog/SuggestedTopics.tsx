@@ -71,7 +71,7 @@ export function SuggestedTopics({ tier }: SuggestedTopicsProps) {
           <p className="text-sm text-gray-600 dark:text-[#98A2B3] mb-4">
             Get personalized content ideas based on trending keywords, gaps in your content, and competitor analysis.
           </p>
-          <button className="px-4 py-2 bg-gradient-to-r from-[#0b3d84] to-[#6EE7F5] text-white rounded-lg hover:scale-105 transition-all duration-300 glow-primary">
+          <button className="px-4 py-2 bg-[#D946EF] text-white rounded-lg hover:scale-105 transition-all duration-300 glow-primary">
             Upgrade to Premium
           </button>
         </div>
