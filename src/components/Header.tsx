@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Bell, Moon, Sun, Sparkles } from 'lucide-react';
+import { Search, Bell, Moon, Sun, Sparkles, HelpCircle, User } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { Tier } from '../App';
 import { SearchOverlay } from './search/SearchOverlay';
@@ -29,7 +29,7 @@ export function Header({ tier }: HeaderProps) {
     <>
       <SearchOverlay isOpen={showSearchOverlay} onClose={() => setShowSearchOverlay(false)} />
       
-      <header className="bg-white dark:bg-[#12161A] border-b border-gray-200 dark:border-white/10 px-8 py-4 transition-all shadow-sm">
+      <header className="bg-white dark:bg-[#12161A] border-b border-gray-200 dark:border-white/10 px-8 py-4 shadow-sm">
       <div className="flex items-center gap-6">
         {/* Search Trigger */}
         <div className="flex-1 max-w-2xl">
@@ -49,13 +49,22 @@ export function Header({ tier }: HeaderProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          {/* AI Assistant */}
-          {tier !== 'free' && (
-            <button className="relative p-3 glass-card-light dark:glass-card rounded-xl hover:shadow-md transition-all duration-200 group">
-              <Sparkles className="w-5 h-5 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
-            </button>
-          )}
+          {/* Theme Toggle */}
+          <button 
+            onClick={toggleTheme}
+            className="relative p-3 glass-card-light dark:glass-card rounded-xl hover:shadow-md transition-all duration-200 group"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-5 h-5 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
+            ) : (
+              <Moon className="w-5 h-5 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
+            )}
+          </button>
+
+          {/* Help */}
+          <button className="relative p-3 glass-card-light dark:glass-card rounded-xl hover:shadow-md transition-all duration-200 group">
+            <HelpCircle className="w-5 h-5 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
+          </button>
 
           {/* Notifications */}
           <button className="relative p-3 glass-card-light dark:glass-card rounded-xl hover:shadow-md transition-all duration-200 group text-[rgb(0,0,0)]">
@@ -63,16 +72,9 @@ export function Header({ tier }: HeaderProps) {
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
           </button>
 
-          {/* Theme Toggle */}
-          <button 
-            onClick={toggleTheme}
-            className="p-3 glass-card-light dark:glass-card rounded-xl hover:shadow-md transition-all duration-200 group text-[rgb(0,0,0)]"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-5 h-5 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
-            ) : (
-              <Moon className="w-5 h-5 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
-            )}
+          {/* User Profile */}
+          <button className="relative p-3 glass-card-light dark:glass-card rounded-xl hover:shadow-md transition-all duration-200 group text-[rgb(0,0,0)]">
+            <User className="w-5 h-5 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
           </button>
         </div>
       </div>

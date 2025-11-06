@@ -13,6 +13,7 @@ import { BlogContent } from './components/blog/BlogContent';
 import { ProductsContent } from './components/products/ProductsContent';
 import { PricingContent } from './components/pricing/PricingContent';
 import { MessagesContent } from './components/messages/MessagesContent';
+import { HelpContent } from './components/help/HelpContent';
 import { SettingsContent } from './components/settings/SettingsContent';
 
 export type TabId = 
@@ -27,6 +28,7 @@ export type TabId =
   | 'products' 
   | 'pricing' 
   | 'messages' 
+  | 'help'
   | 'settings';
 
 export type Tier = 'free' | 'premium' | 'platinum';
@@ -59,6 +61,8 @@ export default function App() {
         return <PricingContent tier={tier} onTierChange={setTier} />;
       case 'messages':
         return <MessagesContent tier={tier} />;
+      case 'help':
+        return <HelpContent tier={tier} />;
       case 'settings':
         return <SettingsContent tier={tier} />;
       default:
@@ -68,7 +72,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <div className="flex h-screen bg-gray-50 dark:bg-[#0B0D10] overflow-hidden transition-all relative">
+      <div className="flex h-screen bg-gray-50 dark:bg-[#0B0D10] overflow-hidden relative">
         {/* Subtle Ambient Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#0b3d84]/20 rounded-full blur-3xl"></div>

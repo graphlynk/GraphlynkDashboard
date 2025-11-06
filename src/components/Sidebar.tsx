@@ -10,6 +10,7 @@ import {
   ShoppingBag, 
   CreditCard, 
   MessageSquare, 
+  HelpCircle,
   Settings 
 } from 'lucide-react';
 import { TabId, Tier } from '../App';
@@ -32,6 +33,7 @@ const menuItems = [
   { id: 'products' as TabId, label: 'Digital Products', icon: ShoppingBag },
   { id: 'pricing' as TabId, label: 'Pricing & GKP', icon: CreditCard },
   { id: 'messages' as TabId, label: 'Messages', icon: MessageSquare },
+  { id: 'help' as TabId, label: 'Help & Docs', icon: HelpCircle },
   { id: 'settings' as TabId, label: 'Settings', icon: Settings },
 ];
 
@@ -45,7 +47,7 @@ export function Sidebar({ activeTab, onTabChange, tier }: SidebarProps) {
   const currentTier = tierBadges[tier];
 
   return (
-    <aside className="w-72 bg-white dark:bg-[#12161A] border-r border-gray-200 dark:border-white/10 flex flex-col transition-all shadow-xl">
+    <aside className="w-72 bg-white dark:bg-[#12161A] border-r border-gray-200 dark:border-white/10 flex flex-col shadow-xl">
       {/* Logo/Brand */}
       <div className="p-8 border-b border-gray-200 dark:border-white/10">
         <div className="flex items-center gap-3 mb-4">
