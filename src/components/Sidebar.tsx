@@ -23,16 +23,16 @@ interface SidebarProps {
 
 const menuItems = [
   { id: 'dashboard' as TabId, label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'llm' as TabId, label: 'LLM Visibility', icon: Sparkles, tier: 'platinum' as Tier },
   { id: 'search' as TabId, label: 'Search', icon: Search },
-  { id: 'keywords' as TabId, label: 'Keywords & Entities', icon: TrendingUp },
+  { id: 'profile' as TabId, label: 'Profile & Links', icon: User },
+  { id: 'messages' as TabId, label: 'Messages', icon: MessageSquare },
+  { id: 'blog' as TabId, label: 'Blog Management', icon: FileText },
+  { id: 'keywords' as TabId, label: 'SEO Hub', icon: TrendingUp },
   { id: 'indexation' as TabId, label: 'Indexation & Crawl', icon: Code },
   { id: 'schema' as TabId, label: 'Schema Health', icon: Shield },
-  { id: 'llm' as TabId, label: 'LLM Visibility', icon: Sparkles, tier: 'platinum' as Tier },
-  { id: 'profile' as TabId, label: 'Profile & Links', icon: User },
-  { id: 'blog' as TabId, label: 'Blog Management', icon: FileText },
   { id: 'products' as TabId, label: 'Digital Products', icon: ShoppingBag },
   { id: 'pricing' as TabId, label: 'Pricing & GKP', icon: CreditCard },
-  { id: 'messages' as TabId, label: 'Messages', icon: MessageSquare },
   { id: 'help' as TabId, label: 'Help & Docs', icon: HelpCircle },
   { id: 'settings' as TabId, label: 'Settings', icon: Settings },
 ];
@@ -55,7 +55,7 @@ export function Sidebar({ activeTab, onTabChange, tier }: SidebarProps) {
             <span className="text-white text-xl">G</span>
           </div>
           <div>
-            <h1 className="text-gray-900 dark:text-white text-xl font-[Geist]">GraphLynk</h1>
+            <h1 className="text-gray-900 dark:text-white text-xl font-[Geist]">Graphlynk</h1>
             <p className="text-xs text-gray-600 dark:text-[#98A2B3] font-[Sansation]">Authority Dashboard</p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export function Sidebar({ activeTab, onTabChange, tier }: SidebarProps) {
                   disabled={isLocked}
                   className={`w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl transition-all duration-200 text-left group ${
                     isActive
-                      ? 'bg-gradient-to-r from-[#0b3d84] to-[#6EE7F5] text-white shadow-lg'
+                      ? 'bg-gradient-to-r from-[#0b3d84] to-[#9FF2FF] text-white shadow-lg'
                       : isLocked
                       ? 'text-gray-400 dark:text-[#98A2B3] opacity-40 cursor-not-allowed'
                       : 'text-gray-700 dark:text-[#E6E9EE] hover:bg-gray-100 dark:hover:bg-white/5'
@@ -94,7 +94,7 @@ export function Sidebar({ activeTab, onTabChange, tier }: SidebarProps) {
                     }`}>
                       <Icon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <span className="text-sm text-black dark:text-purple-400">{item.label}</span>
+                    <span className="text-sm">{item.label}</span>
                   </div>
                   {isLocked && (
                     <span className="text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 px-3 py-1.5 rounded-lg border border-purple-500/30 shimmer flex items-center justify-center">

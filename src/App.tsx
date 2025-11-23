@@ -15,6 +15,7 @@ import { PricingContent } from './components/pricing/PricingContent';
 import { MessagesContent } from './components/messages/MessagesContent';
 import { HelpContent } from './components/help/HelpContent';
 import { SettingsContent } from './components/settings/SettingsContent';
+import { Toaster } from 'sonner@2.0.3';
 
 export type TabId = 
   | 'dashboard' 
@@ -72,6 +73,20 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      <Toaster 
+        position="top-center" 
+        richColors 
+        closeButton 
+        expand={true}
+        toastOptions={{
+          style: {
+            background: 'var(--toast-bg)',
+            color: 'var(--toast-text)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          },
+          className: 'toast-custom',
+        }}
+      />
       <div className="flex h-screen bg-gray-50 dark:bg-[#0B0D10] overflow-hidden relative">
         {/* Subtle Ambient Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
@@ -85,7 +100,7 @@ export default function App() {
         {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden relative z-10">
           {/* Header with search */}
-          <Header tier={tier} />
+          <Header tier={tier} onTabChange={setActiveTab} />
           
           {/* Tab content */}
           <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#0B0D10]">

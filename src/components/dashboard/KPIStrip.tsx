@@ -87,32 +87,33 @@ export function KPIStrip({ tier }: KPIStripProps) {
               </div>
             )}
             
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-11 h-11 min-w-[44px] min-h-[44px] bg-gradient-to-br from-[#0b3d84] to-[#6EE7F5] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 glow-primary flex-shrink-0">
-                <Icon className="w-6 h-6 text-white flex-shrink-0" strokeWidth={2} />
+            <div className="flex items-center mb-4">
+              <div className="flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                <Icon className="w-6 h-6 text-[#0b3d84] dark:text-[#6EE7F5] flex-shrink-0" strokeWidth={2} />
               </div>
-              {kpi.trend !== 'neutral' && (
-                <div
-                  className={`flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs min-w-[70px] ${
-                    kpi.trend === 'up' 
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                      : 'bg-red-500/10 text-red-600 dark:text-red-400'
-                  }`}
-                >
-                  {kpi.trend === 'up' ? (
-                    <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
-                  ) : (
-                    <TrendingDown className="w-3.5 h-3.5 flex-shrink-0" />
-                  )}
-                  {kpi.delta}
-                </div>
-              )}
             </div>
             
             <div className="text-3xl text-gray-900 dark:text-white mb-2 group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors">
               {kpi.value}
             </div>
-            <div className="text-xs text-gray-600 dark:text-[#98A2B3]">{kpi.label}</div>
+            <div className="text-xs text-gray-600 dark:text-[#98A2B3] mb-2">{kpi.label}</div>
+            
+            {kpi.trend !== 'neutral' && (
+              <div
+                className={`flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs min-w-[70px] mx-auto ${
+                  kpi.trend === 'up' 
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                    : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                }`}
+              >
+                {kpi.trend === 'up' ? (
+                  <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
+                ) : (
+                  <TrendingDown className="w-3.5 h-3.5 flex-shrink-0" />
+                )}
+                {kpi.delta}
+              </div>
+            )}
           </div>
         );
       })}

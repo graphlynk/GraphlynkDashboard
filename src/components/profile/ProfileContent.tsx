@@ -1,10 +1,22 @@
-import { useState, useCallback, memo } from 'react';
-import { Camera, Plus, X, Globe, Linkedin, Twitter, Github, Youtube, ExternalLink, Link as LinkIcon, CheckCircle, TrendingUp, Eye, Instagram, Facebook, Mic, Music, Radio, BookOpen, Briefcase, FileText, Hash, ChevronDown, ChevronUp, Crop, RotateCw, ZoomIn, ZoomOut, GraduationCap, Building2 } from 'lucide-react';
+import { useState, useCallback, memo, useEffect, useMemo } from 'react';
+import { toast } from 'sonner@2.0.3';
+import { Country, State, City }  from 'country-state-city';
+import { Camera, Plus, X, Globe, Linkedin, Twitter, Github, Youtube, ExternalLink, Link as LinkIcon, CheckCircle, TrendingUp, Eye, Instagram, Facebook, Mic, Music, Radio, BookOpen, Briefcase, FileText, Hash, ChevronDown, ChevronUp, Crop, RotateCw, ZoomIn, ZoomOut, GraduationCap, Building2, MoreHorizontal, Share2, Mail, Code, MessageSquare, Pin, Fingerprint, LayoutGrid, Calendar, ChevronLeft, ChevronRight, Save, Barcode } from 'lucide-react';
 import { Tier } from '../../App';
+import { BlogSlideshowModal, BlogPost } from './BlogSlideshowModal';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { CredentialIcon, degreeMapping } from './EducationIcons';
 import { getCompanyLogo, getFallbackLogoSVG, resolveCompanyDomain } from './CompanyLogoHelper';
+import { ComposeRequest } from '../messages/ComposeRequest';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
+import wikidataLogo from 'figma:asset/191df32bb23004e21084c07905e07ca86ffebf9c.png';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 interface ProfileContentProps {
   tier: Tier;
@@ -110,34 +122,15 @@ const CollapsibleSection = memo(({ id, title, icon: Icon, children, isExpanded, 
 
 CollapsibleSection.displayName = 'CollapsibleSection';
 
-// US States and Territories
-const US_STATES = [
-  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 
-  'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 
-  'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 
-  'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 
-  'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 
-  'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 
-  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming', 'District of Columbia',
-  'Puerto Rico', 'Guam', 'U.S. Virgin Islands', 'American Samoa', 'Northern Mariana Islands'
-];
-
-// Countries (ISO 3166-1)
-const COUNTRIES = [
-  'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 'France', 'Spain', 'Italy',
-  'Netherlands', 'Belgium', 'Switzerland', 'Austria', 'Sweden', 'Norway', 'Denmark', 'Finland',
-  'Ireland', 'Portugal', 'Poland', 'Czech Republic', 'Greece', 'Hungary', 'Romania', 'Bulgaria',
-  'Croatia', 'Slovakia', 'Slovenia', 'Estonia', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta',
-  'Cyprus', 'Iceland', 'Japan', 'South Korea', 'China', 'India', 'Singapore', 'Hong Kong',
-  'Taiwan', 'Thailand', 'Malaysia', 'Indonesia', 'Philippines', 'Vietnam', 'New Zealand',
-  'Brazil', 'Mexico', 'Argentina', 'Chile', 'Colombia', 'Peru', 'Venezuela', 'Ecuador',
-  'South Africa', 'Nigeria', 'Kenya', 'Egypt', 'Morocco', 'Israel', 'United Arab Emirates',
-  'Saudi Arabia', 'Turkey', 'Russia', 'Ukraine', 'Other'
-];
+// Remove hardcoded arrays as we use country-state-city now for validation
+// const US_STATES = ...
+// const COUNTRIES = ...
 
 export function ProfileContent({ tier }: ProfileContentProps) {
   const [activeView, setActiveView] = useState<'edit' | 'preview'>('edit');
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic', 'links']);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showComposeRequest, setShowComposeRequest] = useState(false);
   
   // Profile data
   const [profilePhoto, setProfilePhoto] = useState<string>('');
@@ -147,12 +140,23 @@ export function ProfileContent({ tier }: ProfileContentProps) {
   const [bio, setBio] = useState('Helping businesses dominate search rankings through knowledge graph optimization and strategic content. Featured in Search Engine Journal, Moz, and SEMrush.');
   const [isVerified, setIsVerified] = useState(true);
   
-  // Location fields
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [country, setCountry] = useState('');
+  // Location fields - Storing ISO codes for Country/State to handle logic, Names for City
+  const [countryIso, setCountryIso] = useState('');
+  const [stateIso, setStateIso] = useState('');
+  const [city, setCity] = useState(''); // City Name
+  
   const [postalCode, setPostalCode] = useState('');
   const [locationVisibility, setLocationVisibility] = useState<'full' | 'region' | 'country'>('full');
+
+  // Derived lists
+  // Ensure country-state-city data is loaded
+  const countries = useMemo(() => Country.getAllCountries(), []);
+  const states = useMemo(() => countryIso ? State.getStatesOfCountry(countryIso) : [], [countryIso]);
+  const cities = useMemo(() => (countryIso && stateIso) ? City.getCitiesOfState(countryIso, stateIso) : [], [countryIso, stateIso]);
+
+  // Helper to get Names from ISOs
+  const getCountryName = (iso: string) => countries.find(c => c.isoCode === iso)?.name || iso;
+  const getStateName = (iso: string) => states.find(s => s.isoCode === iso)?.name || iso;
 
   // Image crop states
   const [showCropModal, setShowCropModal] = useState(false);
@@ -211,6 +215,58 @@ export function ProfileContent({ tier }: ProfileContentProps) {
     pressArticles: []
   });
 
+  // Blog Posts
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([
+    {
+        id: '1',
+        title: 'The Future of SEO is Entities',
+        excerpt: 'Why keywords are dying and what you need to do about it. Understanding the shift from strings to things is crucial for modern SEO strategy.',
+        coverImage: 'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?auto=format&fit=crop&q=80&w=1000',
+        date: 'Oct 28, 2024',
+        url: '#',
+        isPinned: true
+    },
+    {
+        id: '2',
+        title: 'Mastering Knowledge Graphs',
+        excerpt: 'A comprehensive guide to building your first knowledge graph. Learn the basics of nodes, edges, and properties.',
+        coverImage: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000',
+        date: 'Oct 25, 2024',
+        url: '#',
+        isPinned: false
+    },
+    {
+        id: '3',
+        title: 'Schema Markup 101',
+        excerpt: 'How to implement structured data for better search visibility. Boost your click-through rates with rich snippets.',
+        coverImage: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&q=80&w=1000',
+        date: 'Oct 20, 2024',
+        url: '#',
+        isPinned: false
+    },
+    {
+        id: '4',
+        title: 'Voice Search Optimization',
+        excerpt: 'Preparing your content for the voice search revolution. Optimizing for natural language queries.',
+        coverImage: 'https://images.unsplash.com/photo-1589254065878-42c9da9e2fa6?auto=format&fit=crop&q=80&w=1000',
+        date: 'Oct 15, 2024',
+        url: '#',
+        isPinned: false
+    }
+  ]);
+
+  const [showSlideshow, setShowSlideshow] = useState(false);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  // Reset preview to pinned post when entering preview mode
+  useEffect(() => {
+    if (activeView === 'preview') {
+      const pinnedIndex = blogPosts.findIndex(p => p.isPinned);
+      setPreviewIndex(pinnedIndex >= 0 ? pinnedIndex : 0);
+    }
+  }, [activeView, blogPosts]);
+
   // Social links (for public display links)
   const [links, setLinks] = useState<SocialLink[]>([
     { id: '1', type: 'website', label: 'Website', url: 'johndoe.com' },
@@ -253,16 +309,19 @@ export function ProfileContent({ tier }: ProfileContentProps) {
 
   // Get location display based on visibility setting
   const getLocationDisplay = () => {
-    if (locationVisibility === 'full' && city && state && country) {
-      return `${city}, ${state}, ${country}`;
-    } else if (locationVisibility === 'full' && (city || state || country)) {
-      return [city, state, country].filter(Boolean).join(', ');
-    } else if (locationVisibility === 'region' && state && country) {
-      return `${state}, ${country}`;
-    } else if (locationVisibility === 'region' && (state || country)) {
-      return [state, country].filter(Boolean).join(', ');
-    } else if (locationVisibility === 'country' && country) {
-      return country;
+    const countryName = getCountryName(countryIso);
+    const stateName = getStateName(stateIso);
+
+    if (locationVisibility === 'full' && city && stateName && countryName) {
+      return `${city}, ${stateName}, ${countryName}`;
+    } else if (locationVisibility === 'full' && (city || stateName || countryName)) {
+      return [city, stateName, countryName].filter(Boolean).join(', ');
+    } else if (locationVisibility === 'region' && stateName && countryName) {
+      return `${stateName}, ${countryName}`;
+    } else if (locationVisibility === 'region' && (stateName || countryName)) {
+      return [stateName, countryName].filter(Boolean).join(', ');
+    } else if (locationVisibility === 'country' && countryName) {
+      return countryName;
     }
     return '';
   };
@@ -491,7 +550,129 @@ export function ProfileContent({ tier }: ProfileContentProps) {
     return allLinks;
   };
 
+  const containsSpam = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    
+    // 1. Check for common spam keywords
+    const spamKeywords = [
+      'buy now', 'click here', 'free money', 'make money fast', 
+      'lose weight fast', 'viagra', 'cialis', 'casino', 'lottery', 
+      'winner', 'crypto hack', 'bitcoin miner'
+    ];
+    
+    for (const keyword of spamKeywords) {
+      if (lowerText.includes(keyword)) {
+        return true;
+      }
+    }
 
+    // 2. Check for excessive URLs (simple heuristic: counting http/https occurrences)
+    const urlCount = (lowerText.match(/http/g) || []).length;
+    if (urlCount > 3) {
+      return true;
+    }
+
+    // 3. Check for extremely long words (potential gibberish or hash spam)
+    const words = text.split(/\s+/);
+    if (words.some(word => word.length > 40 && !word.includes('http'))) {
+      return true; 
+    }
+
+    return false;
+  };
+
+  const validateProfile = () => {
+    let isValid = true;
+    let firstErrorSection = '';
+
+    // Location Validation
+    if (!city.trim() || !stateIso || !countryIso) {
+      toast.error("Location fields are incomplete.", {
+        description: "Country, State/Region, and City are required."
+      });
+      isValid = false;
+      firstErrorSection = 'basic';
+    }
+
+    // Bio Validation
+    if (isValid) {
+      if (!bio.trim()) {
+        toast.error("Bio is required.", {
+          description: "Please enter a short bio about yourself."
+        });
+        isValid = false;
+        firstErrorSection = 'basic';
+      } else if (bio.length < 20) {
+        toast.error("Bio is too short.", {
+          description: "Your bio must be at least 20 characters long."
+        });
+        isValid = false;
+        firstErrorSection = 'basic';
+      } else if (containsSpam(bio)) {
+        toast.error("Bio contains spam or invalid content.", {
+          description: "Please remove promotional links, spam keywords, or excessive URLs."
+        });
+        isValid = false;
+        firstErrorSection = 'basic';
+      }
+    }
+
+    if (!isValid && firstErrorSection) {
+      if (!expandedSections.includes(firstErrorSection)) {
+        setExpandedSections(prev => [...prev, firstErrorSection]);
+      }
+      
+      setTimeout(() => {
+        const sectionElement = document.getElementById(firstErrorSection === 'basic' ? 'basic-info-section' : firstErrorSection);
+        // Fallback to top if specific ID not found, though we should add IDs
+        if (sectionElement) {
+            sectionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            // For basic info specifically, since we have IDs inside it
+             if (firstErrorSection === 'basic') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+             }
+        }
+      }, 100);
+    }
+    
+    return isValid;
+  };
+
+  const handleSave = () => {
+    if (validateProfile()) {
+      toast.success("Profile changes saved successfully!");
+    }
+  };
+
+  const handlePreview = () => {
+    if (validateProfile()) {
+      setActiveView('preview');
+    }
+  };
+
+// Schema Preview Data
+  const schemaData = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": name,
+    "jobTitle": title,
+    "url": `https://graphlynk.com/${username}`,
+    "description": `${bio.substring(0, 100)}...`,
+    ...(city || stateIso || countryIso ? {
+      "address": {
+        "@type": "PostalAddress",
+        ...(city ? { "addressLocality": city } : {}),
+        ...(stateIso ? { "addressRegion": getStateName(stateIso) } : {}),
+        ...(countryIso ? { "addressCountry": getCountryName(countryIso) } : {}),
+        ...(postalCode ? { "postalCode": postalCode } : {})
+      }
+    } : {}),
+    ...(identifiers.isni ? { "isni": identifiers.isni } : {}),
+    ...(identifiers.orcid ? { "orcid": identifiers.orcid } : {}),
+    ...(identifiers.wikidataQID ? { "identifier": identifiers.wikidataQID } : {}),
+    "sameAs": collectSameAsLinks().map(link => `https://${link}`)
+  };
 
   return (
     <div className="p-8">
@@ -598,6 +779,15 @@ export function ProfileContent({ tier }: ProfileContentProps) {
           
           {/* View Toggle */}
           <div className="flex gap-3">
+             {activeView === 'edit' && (
+              <button
+                onClick={handleSave}
+                className="px-6 py-3 rounded-xl transition-all duration-200 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-[#E6E9EE] hover:bg-gray-50 dark:hover:bg-white/10 flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Save Changes
+              </button>
+            )}
             <button
               onClick={() => setActiveView('edit')}
               className={`px-6 py-3 rounded-xl transition-all duration-200 ${
@@ -609,7 +799,7 @@ export function ProfileContent({ tier }: ProfileContentProps) {
               Edit Profile
             </button>
             <button
-              onClick={() => setActiveView('preview')}
+              onClick={handlePreview}
               className={`px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 ${
                 activeView === 'preview'
                   ? 'bg-gradient-to-r from-[#0b3d84] to-[#6EE7F5] text-white shadow-lg'
@@ -725,48 +915,87 @@ export function ProfileContent({ tier }: ProfileContentProps) {
                 </div>
 
                 {/* Location Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div id="location-fields" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="block text-sm text-gray-700 dark:text-[#E6E9EE] mb-2">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="Newark"
-                      className="w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-700 dark:text-[#E6E9EE] mb-2">
-                      State / Region
+                      Country <span className="text-red-500">*</span>
                     </label>
                     <select
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all"
+                      value={countryIso}
+                      onChange={(e) => {
+                        setCountryIso(e.target.value);
+                        setStateIso('');
+                        setCity('');
+                      }}
+                      className={`w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all ${
+                        !countryIso && expandedSections.includes('basic') && activeView === 'edit' ? 'border-gray-200 dark:border-white/10' : 'border-gray-200 dark:border-white/10'
+                      }`}
                     >
-                      <option value="">Select state/region</option>
-                      {US_STATES.map(s => (
-                        <option key={s} value={s}>{s}</option>
+                      <option value="">Select Country</option>
+                      {countries.map((c) => (
+                        <option key={c.isoCode} value={c.isoCode}>
+                          {c.name}
+                        </option>
                       ))}
                     </select>
                   </div>
+
                   <div>
                     <label className="block text-sm text-gray-700 dark:text-[#E6E9EE] mb-2">
-                      Country
+                      State / Region <span className="text-red-500">*</span>
                     </label>
                     <select
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all"
+                      value={stateIso}
+                      onChange={(e) => {
+                        setStateIso(e.target.value);
+                        setCity('');
+                      }}
+                      disabled={!countryIso}
+                      className={`w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                        !stateIso && expandedSections.includes('basic') && activeView === 'edit' ? 'border-gray-200 dark:border-white/10' : 'border-gray-200 dark:border-white/10'
+                      }`}
                     >
-                      <option value="">Select country</option>
-                      {COUNTRIES.map(c => (
-                        <option key={c} value={c}>{c}</option>
+                      <option value="">Select State/Region</option>
+                      {states.map((s) => (
+                        <option key={s.isoCode} value={s.isoCode}>
+                          {s.name}
+                        </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-700 dark:text-[#E6E9EE] mb-2">
+                      City <span className="text-red-500">*</span>
+                    </label>
+                    {cities.length > 0 ? (
+                      <select
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        disabled={!stateIso}
+                        className={`w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                          !city && expandedSections.includes('basic') && activeView === 'edit' ? 'border-gray-200 dark:border-white/10' : 'border-gray-200 dark:border-white/10'
+                        }`}
+                      >
+                        <option value="">Select City</option>
+                        {cities.map((c) => (
+                          <option key={c.name} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Enter City"
+                        disabled={!stateIso}
+                        className={`w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                          !city && expandedSections.includes('basic') && activeView === 'edit' ? 'border-gray-200 dark:border-white/10' : 'border-gray-200 dark:border-white/10'
+                        }`}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -850,17 +1079,25 @@ export function ProfileContent({ tier }: ProfileContentProps) {
 
               <div className="mt-8">
                 <label className="block text-sm text-gray-700 dark:text-[#E6E9EE] mb-2">
-                  About / Bio
+                  About / Bio <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all resize-none"
+                  placeholder="Tell us about yourself..."
+                  className={`w-full px-4 py-3 bg-white dark:bg-[#1A1F26] border rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3d84] dark:focus:ring-[#6EE7F5] transition-all resize-none ${
+                    (!bio || bio.length < 20) && expandedSections.includes('basic') && activeView === 'edit' && bio.length > 0 ? 'border-yellow-500' : 'border-gray-200 dark:border-white/10'
+                  }`}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {bio.length} / 500 characters
-                </p>
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    {bio.length} / 500 characters (min. 20)
+                  </p>
+                  {bio.length > 0 && bio.length < 20 && (
+                    <span className="text-xs text-yellow-500">Too short</span>
+                  )}
+                </div>
               </div>
 
             </CollapsibleSection>
@@ -1514,6 +1751,54 @@ export function ProfileContent({ tier }: ProfileContentProps) {
               </div>
             </CollapsibleSection>
 
+            {/* Blog Highlights */}
+            <CollapsibleSection 
+              id="blog" 
+              title="BLOG HIGHLIGHTS" 
+              icon={LayoutGrid}
+              isExpanded={expandedSections.includes('blog')}
+              onToggle={toggleSection}
+            >
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600 dark:text-[#98A2B3] mb-4">
+                  Select which posts to highlight on your profile. Pin a post to feature it at the top.
+                </p>
+                
+                <div className="space-y-3">
+                  {blogPosts.map((post) => (
+                    <div key={post.id} className="p-4 bg-white dark:bg-[#1A1F26] rounded-xl border border-gray-200 dark:border-white/10 flex gap-4">
+                       <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-white/5 overflow-hidden flex-shrink-0">
+                         <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" />
+                       </div>
+                       <div className="flex-1 min-w-0">
+                         <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">{post.title}</h4>
+                         <p className="text-xs text-gray-500 dark:text-[#98A2B3] mt-1 line-clamp-2">{post.excerpt}</p>
+                         <div className="flex items-center gap-4 mt-2">
+                           <button
+                             onClick={() => {
+                               setBlogPosts(blogPosts.map(p => ({
+                                 ...p,
+                                 isPinned: p.id === post.id ? !p.isPinned : false // Only one pinned post allowed for now
+                               })));
+                             }}
+                             className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                               post.isPinned 
+                                 ? 'text-[#0b3d84] dark:text-[#6EE7F5]' 
+                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                             }`}
+                           >
+                             <Pin className={`w-3 h-3 ${post.isPinned ? 'fill-current' : ''}`} />
+                             {post.isPinned ? 'Pinned to Top' : 'Pin to Top'}
+                           </button>
+                           <span className="text-xs text-gray-400 dark:text-gray-600">{post.date}</span>
+                         </div>
+                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CollapsibleSection>
+
             {/* Public Display Links */}
             <CollapsibleSection 
               id="links" 
@@ -1594,23 +1879,7 @@ export function ProfileContent({ tier }: ProfileContentProps) {
               <h3 className="text-gray-900 dark:text-white mb-4">SCHEMA MARKUP PREVIEW</h3>
               <div className="bg-gray-900 rounded-xl p-4 overflow-x-auto">
                 <pre className="text-green-400 text-xs">
-{`{
-  "@context": "https://schema.org",
-  "@type": "Person",
-  "name": "${name}",
-  "jobTitle": "${title}",
-  "url": "https://graphlynk.com/${username}",
-  "description": "${bio.substring(0, 100)}...",
-  ${city || state || country ? `"address": {
-    "@type": "PostalAddress",${city ? `\n    "addressLocality": "${city}",` : ''}${state ? `\n    "addressRegion": "${state}",` : ''}${country ? `\n    "addressCountry": "${country}"` : ''}${postalCode ? `,\n    "postalCode": "${postalCode}"` : ''}
-  },` : ''}
-  ${identifiers.isni ? `"isni": "${identifiers.isni}",` : ''}
-  ${identifiers.orcid ? `"orcid": "${identifiers.orcid}",` : ''}
-  ${identifiers.wikidataQID ? `"identifier": "${identifiers.wikidataQID}",` : ''}
-  "sameAs": [
-    ${collectSameAsLinks().map(link => `"https://${link}"`).join(',\n    ')}
-  ]
-}`}
+                  {JSON.stringify(schemaData, null, 2)}
                 </pre>
               </div>
               <p className="text-xs text-gray-500 dark:text-[#98A2B3] mt-3">
@@ -1633,7 +1902,9 @@ export function ProfileContent({ tier }: ProfileContentProps) {
         {/* Preview View */}
         {activeView === 'preview' && (
           <div className="flex justify-center">
-            <div className="w-full max-w-2xl">
+            <div className="w-full max-w-2xl relative">
+              {/* Horizontal Three-dot Share Menu Button - Top Right (Moved to Profile Info) */}
+
               {/* Public Profile Preview */}
               <div className="bg-white dark:bg-[#1A1F26] rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-white/10">
                 <div className="p-8 lg:p-12">
@@ -1684,30 +1955,329 @@ export function ProfileContent({ tier }: ProfileContentProps) {
                         </div>
                       )}
 
+                      {/* Contact Button */}
+                      <div className="mb-4">
+                        <button
+                          onClick={() => setShowComposeRequest(true)}
+                          className="w-full px-6 py-3.5 bg-gradient-to-r from-[#0b3d84] to-[#9FF2FF] text-white rounded-xl hover:shadow-lg hover:shadow-[#0b3d84]/30 dark:hover:shadow-[#6EE7F5]/30 transition-all duration-200 flex items-center justify-center gap-2"
+                        >
+                          <MessageSquare className="w-5 h-5" />
+                          Contact {name}
+                        </button>
+                      </div>
+
+                      {/* Profile Identifiers */}
+                      {(identifiers.isni || identifiers.orcid || identifiers.musicbrainzArtist || identifiers.musicbrainzLabel || identifiers.wikidataQID) && (
+                        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-white/10">
+                          <h4 className="text-xs text-gray-500 dark:text-[#98A2B3] mb-3 flex items-center gap-2 uppercase tracking-wider">
+                            <Fingerprint className="w-3 h-3" /> Verified Identifiers
+                          </h4>
+                          <div className="grid grid-cols-1 gap-2">
+                            {identifiers.isni && (
+                              <a 
+                                href={`https://isni.org/isni/${identifiers.isni.replace(/\s/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between p-2.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-lg group hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                    <span className="text-[10px] font-bold">IS</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-semibold text-blue-900 dark:text-blue-100 block">ISNI</span>
+                                    <span className="text-[10px] font-mono text-blue-700 dark:text-blue-300 group-hover:underline decoration-blue-500/50">{identifiers.isni}</span>
+                                  </div>
+                                </div>
+                              </a>
+                            )}
+                            {identifiers.orcid && (
+                              <div className="flex items-center justify-between p-2.5 bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-lg group hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
+                                    <span className="text-[10px] font-bold">ID</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-semibold text-green-900 dark:text-green-100 block">ORCID</span>
+                                    <span className="text-[10px] font-mono text-green-700 dark:text-green-300">{identifiers.orcid}</span>
+                                  </div>
+                                </div>
+                                <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400" />
+                              </div>
+                            )}
+                            {identifiers.musicbrainzArtist && (
+                              <a 
+                                href={`https://musicbrainz.org/artist/${identifiers.musicbrainzArtist}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between p-2.5 bg-[#EB743B]/5 dark:bg-[#EB743B]/10 border border-[#EB743B]/20 dark:border-[#EB743B]/20 rounded-lg group hover:bg-[#EB743B]/10 dark:hover:bg-[#EB743B]/20 transition-colors cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 flex items-center justify-center">
+                                    <ImageWithFallback 
+                                      src="https://upload.wikimedia.org/wikipedia/commons/2/24/MusicBrainz_Logo_Icon.svg"
+                                      alt="MusicBrainz"
+                                      className="w-full h-full object-contain"
+                                    />
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-semibold text-[#EB743B] dark:text-[#F59E74] block">MusicBrainz (Artist)</span>
+                                    <span className="text-[10px] font-mono text-[#EB743B]/80 dark:text-[#F59E74]/80 group-hover:underline decoration-[#EB743B]/50">{identifiers.musicbrainzArtist.slice(-12)}</span>
+                                  </div>
+                                </div>
+                              </a>
+                            )}
+                            {identifiers.musicbrainzLabel && (
+                              <div className="flex items-center justify-between p-2.5 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30 rounded-lg group hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                                    <span className="text-[10px] font-bold">MB</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-semibold text-purple-900 dark:text-purple-100 block">MusicBrainz (Label)</span>
+                                    <span className="text-[10px] font-mono text-purple-700 dark:text-purple-300">{identifiers.musicbrainzLabel}</span>
+                                  </div>
+                                </div>
+                                <CheckCircle className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                              </div>
+                            )}
+                            {identifiers.wikidataQID && (
+                              <a 
+                                href={`https://www.wikidata.org/wiki/${identifiers.wikidataQID}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between p-2.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-lg group hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 flex items-center justify-center">
+                                    <Barcode className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-semibold text-blue-900 dark:text-blue-100 block">Wikidata</span>
+                                    <span className="text-[10px] font-mono text-blue-700 dark:text-blue-300 group-hover:underline decoration-blue-500/50">{identifiers.wikidataQID}</span>
+                                  </div>
+                                </div>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                     </div>
 
                     {/* Profile Info */}
                     <div className="flex-1">
-                      {isVerified && (
-                        <div className="mb-4 flex justify-end">
-                          <div className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            Verified
-                          </div>
-                        </div>
-                      )}
+                      {/* Share Menu (Moved from top) */}
+                      <div className="mb-4 flex justify-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="px-4 h-10 rounded-full bg-white/10 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/10 transition-all duration-200 flex items-center justify-center gap-2 group shadow-lg hover:shadow-xl outline-none"
+                              title="Share Profile"
+                            >
+                              <Share2 className="w-4 h-4 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
+                              <MoreHorizontal className="w-5 h-5 text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5] transition-colors" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent 
+                            side="right" 
+                            align="start" 
+                            className="w-72 p-0 bg-white dark:bg-[#1A1F26] border border-gray-200 dark:border-white/20 rounded-xl shadow-2xl overflow-hidden z-50"
+                          >
+                              <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 backdrop-blur-sm">
+                                <p className="text-xs font-medium text-gray-500 dark:text-[#98A2B3] uppercase tracking-wider">Share Profile</p>
+                              </div>
+                              
+                              <div className="p-2 max-h-[480px] overflow-y-auto custom-scrollbar space-y-1">
+                                {/* X (formerly Twitter) */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const shareUrl = `https://graphlynk.com/${username}`;
+                                    window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Check out ${name}'s profile on GraphLynk`)}`);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-black text-white dark:bg-white dark:text-black group-hover:scale-110 transition-transform">
+                                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                    </svg>
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">Share on X</span>
+                                </DropdownMenuItem>
+
+                                {/* Instagram */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    alert('To share to Instagram Stories:\n1. Screenshot this profile\n2. Open Instagram\n3. Create a new Story\n4. Add your screenshot');
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white group-hover:scale-110 transition-transform">
+                                    <Instagram className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">Instagram Stories</span>
+                                </DropdownMenuItem>
+
+                                {/* TikTok */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    alert('To share to TikTok:\n1. Screenshot this profile\n2. Open TikTok\n3. Create a new video/story\n4. Add your screenshot');
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-black text-white dark:bg-white dark:text-black group-hover:scale-110 transition-transform">
+                                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                                    </svg>
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">TikTok Stories</span>
+                                </DropdownMenuItem>
+
+                                {/* WhatsApp */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const shareUrl = `https://graphlynk.com/${username}`;
+                                    window.open(`https://wa.me/?text=${encodeURIComponent(`Check out ${name}'s profile on GraphLynk: ${shareUrl}`)}`);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#25D366] text-white group-hover:scale-110 transition-transform">
+                                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                    </svg>
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">WhatsApp</span>
+                                </DropdownMenuItem>
+
+                                {/* Facebook */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const shareUrl = `https://graphlynk.com/${username}`;
+                                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1877F2] text-white group-hover:scale-110 transition-transform">
+                                    <Facebook className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">Facebook</span>
+                                </DropdownMenuItem>
+
+                                {/* LinkedIn */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const shareUrl = `https://graphlynk.com/${username}`;
+                                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#0077B5] text-white group-hover:scale-110 transition-transform">
+                                    <Linkedin className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">LinkedIn</span>
+                                </DropdownMenuItem>
+
+                                {/* Reddit */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const shareUrl = `https://graphlynk.com/${username}`;
+                                    window.open(`https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(`Check out ${name}'s GraphLynk profile`)}`);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#FF4500] text-white group-hover:scale-110 transition-transform">
+                                    <Radio className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">Reddit</span>
+                                </DropdownMenuItem>
+
+                                {/* Pinterest */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const shareUrl = `https://graphlynk.com/${username}`;
+                                    window.open(`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(shareUrl)}&description=${encodeURIComponent(`${name}'s GraphLynk profile`)}`);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#E60023] text-white group-hover:scale-110 transition-transform">
+                                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/>
+                                    </svg>
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">Pinterest</span>
+                                </DropdownMenuItem>
+
+                                <div className="my-1 border-t border-gray-200 dark:border-white/10"></div>
+
+                                {/* Copy Link */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const shareUrl = `https://graphlynk.com/${username}`;
+                                    navigator.clipboard.writeText(shareUrl);
+                                    alert('Profile link copied to clipboard!');
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white group-hover:scale-110 transition-transform">
+                                    <LinkIcon className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">Copy Link</span>
+                                </DropdownMenuItem>
+
+                                {/* Email */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const shareUrl = `https://graphlynk.com/${username}`;
+                                    window.location.href = `mailto:?subject=${encodeURIComponent(`Check out ${name}'s GraphLynk profile`)}&body=${encodeURIComponent(`I thought you might be interested in this profile: ${shareUrl}`)}`;
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white group-hover:scale-110 transition-transform">
+                                    <Mail className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">Email</span>
+                                </DropdownMenuItem>
+
+                                {/* Embed */}
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const embedCode = `<iframe src="https://graphlynk.com/embed/${username}" width="400" height="600" frameborder="0" scrolling="auto" style="border: 1px solid #e5e7eb; border-radius: 16px;"></iframe>`;
+                                    navigator.clipboard.writeText(embedCode);
+                                    alert('Embed code copied to clipboard!');
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#6EE7F5]/10 dark:hover:bg-[#6EE7F5]/10 transition-all duration-200 group cursor-pointer outline-none focus:bg-[#6EE7F5]/10 dark:focus:bg-[#6EE7F5]/10"
+                                >
+                                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white group-hover:scale-110 transition-transform">
+                                    <Code className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-[#E6E9EE] group-hover:text-[#0b3d84] dark:group-hover:text-[#6EE7F5]">Embed</span>
+                                </DropdownMenuItem>
+                              </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
 
                       {/* Name and Username */}
                       <div className="mb-3">
-                        <h2 className="text-gray-900 dark:text-white mb-1">
-                          {name}
-                        </h2>
-                        <p className="text-[#155DFC] dark:text-[#155DFC] text-sm">@{username}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h2 className="text-gray-900 dark:text-white">
+                            {name}
+                          </h2>
+                          {isVerified && (
+                            <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-500 fill-blue-100 dark:fill-blue-900/30" />
+                          )}
+                        </div>
+                        <p className="text-sm font-bold text-[#0b3d84] dark:text-[#9FF2FF]">@{username}</p>
                         {getLocationDisplay() && (
-                          <p className="text-gray-600 dark:text-[#98A2B3] text-sm mt-1">
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getLocationDisplay())}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-600 dark:text-[#98A2B3] text-sm mt-1 hover:text-[#0b3d84] dark:hover:text-[#6EE7F5] transition-colors block"
+                            title="View on Google Maps"
+                          >
                             {getLocationDisplay()}
-                          </p>
+                          </a>
                         )}
                       </div>
 
@@ -1748,6 +2318,83 @@ export function ProfileContent({ tier }: ProfileContentProps) {
                           })}
                         </div>
                       </div>
+
+
+
+                      {/* Blog Section */}
+                      {blogPosts.length > 0 && (
+                        <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/10">
+                          <div className="flex items-center justify-between mb-4">
+                             <h4 className="text-xs text-gray-500 dark:text-[#98A2B3] uppercase tracking-wider flex items-center gap-2">
+                               <LayoutGrid className="w-4 h-4" /> Latest from the Blog
+                             </h4>
+                             <div className="flex gap-2">
+                               <button 
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setPreviewIndex((prev) => (prev - 1 + blogPosts.length) % blogPosts.length);
+                                 }}
+                                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-[#98A2B3] transition-colors"
+                                 title="Previous Post"
+                               >
+                                 <ChevronLeft className="w-4 h-4" />
+                               </button>
+                               <button 
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setPreviewIndex((prev) => (prev + 1) % blogPosts.length);
+                                 }}
+                                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-[#98A2B3] transition-colors"
+                                 title="Next Post"
+                               >
+                                 <ChevronRight className="w-4 h-4" />
+                               </button>
+                             </div>
+                          </div>
+                          
+                          {/* Carousel Card */}
+                          {(() => {
+                             const post = blogPosts[previewIndex] || blogPosts[0];
+                             if (!post) return null;
+                             
+                             return (
+                               <div 
+                                 onClick={() => {
+                                    setCurrentSlideIndex(previewIndex);
+                                    setShowSlideshow(true);
+                                 }}
+                                 className="group relative aspect-[2/1] rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-xl transition-all"
+                               >
+                                 <img 
+                                   key={post.id}
+                                   src={post.coverImage} 
+                                   alt={post.title} 
+                                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                 />
+                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6">
+                                    {post.isPinned && (
+                                      <div className="absolute top-4 right-4 bg-[#0b3d84] text-white text-xs font-medium px-2 py-1 rounded-md flex items-center gap-1 shadow-lg">
+                                        <Pin className="w-3 h-3 fill-current" /> Pinned
+                                      </div>
+                                    )}
+                                    
+                                    <div className="text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                                      <div className="flex items-center gap-2 text-xs opacity-80 mb-2">
+                                         <Calendar className="w-3 h-3" />
+                                         {post.date}
+                                         <span className="w-1 h-1 rounded-full bg-white/50 mx-1" />
+                                         <span className="text-[#6EE7F5]">Read Story</span>
+                                      </div>
+                                      <h3 className="text-xl md:text-2xl font-bold mb-2 group-hover:text-[#6EE7F5] transition-colors">{post.title}</h3>
+                                      <p className="text-sm text-gray-200 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">{post.excerpt}</p>
+                                    </div>
+                                 </div>
+                               </div>
+                             );
+                          })()}
+                        </div>
+                      )}
+
                     </div>
                   </div>
 
@@ -1780,7 +2427,7 @@ export function ProfileContent({ tier }: ProfileContentProps) {
                       </div>
                     </div>
                     <p className="text-xs text-center text-gray-400 dark:text-[#98A2B3] mt-4">
-                      Schema markup active and validated by <span className="text-[#0b3d84] dark:text-[#6EE7F5]">Google</span>
+                      Schema markup active and validated by <a href="https://www.google.com" target="_blank" rel="noopener noreferrer" className="text-[#0b3d84] dark:text-[#6EE7F5] hover:underline">Google</a>
                     </p>
                   </div>
                 </div>
@@ -1796,6 +2443,25 @@ export function ProfileContent({ tier }: ProfileContentProps) {
           </div>
         )}
       </div>
+
+      {/* Compose Request Modal */}
+      {showComposeRequest && (
+        <ComposeRequest
+          tier={tier}
+          onClose={() => setShowComposeRequest(false)}
+          sentToday={0}
+          sendLimit={tier === 'free' ? 3 : tier === 'premium' ? 10 : 25}
+        />
+      )}
+
+      {/* Blog Slideshow Modal */}
+      <BlogSlideshowModal
+        isOpen={showSlideshow}
+        onClose={() => setShowSlideshow(false)}
+        posts={blogPosts}
+        startIndex={currentSlideIndex}
+        onIndexChange={setCurrentSlideIndex}
+      />
     </div>
   );
 }

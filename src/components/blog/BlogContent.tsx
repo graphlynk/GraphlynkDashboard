@@ -1,12 +1,23 @@
+import { useState } from 'react';
 import { Plus, FileText, ExternalLink, Edit, Trash2, Eye, Clock } from 'lucide-react';
 import { Tier } from '../../App';
 import { SuggestedTopics } from './SuggestedTopics';
+import { BlogEditor } from './BlogEditor';
 
 interface BlogContentProps {
   tier: Tier;
 }
 
-const blogPosts = [
+interface BlogPost {
+  id: number;
+  title: string;
+  status: 'published' | 'draft';
+  views: number;
+  date: string;
+  slug: string;
+}
+
+const initialBlogPosts: BlogPost[] = [
   {
     id: 1,
     title: 'How to Optimize Your Knowledge Graph for Google',
@@ -34,15 +45,44 @@ const blogPosts = [
 ];
 
 export function BlogContent({ tier }: BlogContentProps) {
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [posts, setPosts] = useState<BlogPost[]>(initialBlogPosts);
+
+  const handlePublish = (newPost: { title: string; content: string; coverImage: string }) => {
+    const post: BlogPost = {
+      id: Date.now(),
+      title: newPost.title || 'Untitled Post',
+      status: 'published',
+      views: 0,
+      date: new Date().toISOString().split('T')[0],
+      slug: newPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    };
+    
+    setPosts([post, ...posts]);
+    setIsEditorOpen(false);
+  };
+
+  if (isEditorOpen) {
+    return (
+      <BlogEditor 
+        onBack={() => setIsEditorOpen(false)}
+        onPublish={handlePublish}
+      />
+    );
+  }
+
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6 relative">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl text-gray-900 dark:text-white mb-1">Blog Management</h1>
           <p className="text-gray-600 dark:text-[#98A2B3]">Manage your blog posts and short links</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#0b3d84] text-white rounded-lg hover:bg-[#0a3470] transition-colors">
+        <button 
+          onClick={() => setIsEditorOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-[#0b3d84] text-white rounded-lg hover:bg-[#0a3470] transition-colors"
+        >
           <Plus className="w-4 h-4" />
           New Post
         </button>
@@ -54,7 +94,7 @@ export function BlogContent({ tier }: BlogContentProps) {
           <div className="flex items-center justify-between mb-2">
             <FileText className="w-5 h-5 text-[#0b3d84]" />
           </div>
-          <div className="text-2xl text-gray-900 dark:text-white mb-1">12</div>
+          <div className="text-2xl text-gray-900 dark:text-white mb-1">{posts.length}</div>
           <div className="text-xs text-gray-600 dark:text-[#98A2B3]">Total Posts</div>
         </div>
         
@@ -78,7 +118,9 @@ export function BlogContent({ tier }: BlogContentProps) {
           <div className="flex items-center justify-between mb-2">
             <Clock className="w-5 h-5 text-[#F59E0B]" />
           </div>
-          <div className="text-2xl text-gray-900 dark:text-white mb-1">3</div>
+          <div className="text-2xl text-gray-900 dark:text-white mb-1">
+            {posts.filter(p => p.status === 'draft').length}
+          </div>
           <div className="text-xs text-gray-600 dark:text-[#98A2B3]">Drafts</div>
         </div>
       </div>
@@ -93,12 +135,12 @@ export function BlogContent({ tier }: BlogContentProps) {
             </div>
             
             <div className="divide-y divide-gray-200 dark:divide-gray-800">
-              {blogPosts.map((post) => (
+              {posts.map((post) => (
                 <div key={post.id} className="p-6 hover:bg-gray-50 dark:hover:bg-[#1a1f24] transition-colors">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-gray-900 dark:text-[#E6E9EE]">{post.title}</h3>
+                        <h3 className="text-gray-900 dark:text-[#E6E9EE] font-medium">{post.title}</h3>
                         <span
                           className={`text-xs px-2 py-0.5 rounded ${
                             post.status === 'published'

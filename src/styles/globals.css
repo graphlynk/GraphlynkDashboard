@@ -224,6 +224,43 @@ html {
       inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
   }
 
+  /* Toast Notifications */
+  :root {
+    --toast-bg: #FFFFFF;
+    --toast-text: #0B0D10;
+  }
+
+  :is(.dark *) {
+    --toast-bg: rgba(18, 22, 26, 0.95);
+    --toast-text: #FFFFFF;
+  }
+
+  [data-sonner-toast] {
+    background: var(--toast-bg) !important;
+    border: 1px solid rgba(110, 231, 245, 0.3) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  [data-sonner-toast] [data-title] {
+    color: var(--toast-text) !important;
+    font-weight: 500 !important;
+  }
+
+  [data-sonner-toast] [data-button] {
+    background: linear-gradient(to right, #0b3d84, #9FF2FF) !important;
+    color: white !important;
+    border: none !important;
+    padding: 6px 16px !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+  }
+
+  [data-sonner-toast] [data-button]:hover {
+    opacity: 0.9 !important;
+  }
+
   .mirror-surface {
     position: relative;
     background: linear-gradient(135deg, 
@@ -320,6 +357,14 @@ html {
     animation: overlay-fade-out 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
+  .animate-slide-in-right {
+    animation: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-slide-out-right {
+    animation: slide-out-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
   /* Vision UI Gradients */
   .gradient-vision-primary {
     background: linear-gradient(135deg, #0b3d84 0%, #1e5a9e 50%, #6EE7F5 100%);
@@ -387,5 +432,27 @@ html {
   to {
     opacity: 0;
     transform: scale(0.95);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
   }
 }

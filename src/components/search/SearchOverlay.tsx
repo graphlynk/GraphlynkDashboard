@@ -4,11 +4,14 @@ import { Search, X, TrendingUp, Clock, ArrowRight, User, FileText, Hash, Globe, 
 interface SearchOverlayProps {
   isOpen: boolean;
   onClose: () => void;
+  onNavigateToTab?: (tab: string) => void;
+  onOpenHelp?: () => void;
+  onOpenMessages?: () => void;
 }
 
 type SearchTab = 'all' | 'profiles' | 'content' | 'keywords' | 'entities' | 'schema';
 
-export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
+export function SearchOverlay({ isOpen, onClose, onNavigateToTab, onOpenHelp, onOpenMessages }: SearchOverlayProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<SearchTab>('all');
 
@@ -55,9 +58,33 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   ];
 
   const quickActions = [
-    { label: 'New Blog Post', icon: FileText, color: 'from-blue-500 to-cyan-500' },
-    { label: 'Run Schema Test', icon: Code, color: 'from-purple-500 to-pink-500' },
-    { label: 'AI Analysis', icon: Sparkles, color: 'from-amber-500 to-orange-500' },
+    { 
+      label: 'New Blog Post', 
+      icon: FileText, 
+      color: 'from-blue-500 to-cyan-500',
+      action: () => {
+        onClose();
+        onNavigateToTab?.('blog');
+      }
+    },
+    { 
+      label: 'Run Schema Test', 
+      icon: Code, 
+      color: 'from-purple-500 to-pink-500',
+      action: () => {
+        onClose();
+        onNavigateToTab?.('schema');
+      }
+    },
+    { 
+      label: 'AI Analysis', 
+      icon: Sparkles, 
+      color: 'from-amber-500 to-orange-500',
+      action: () => {
+        onClose();
+        onNavigateToTab?.('llm');
+      }
+    },
   ];
 
   return (
@@ -145,6 +172,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                         <button
                           key={index}
                           className="group relative p-6 glass-card-light dark:glass-card rounded-2xl hover:shadow-lg transition-all duration-200 overflow-hidden"
+                          onClick={action.action}
                         >
                           <div className={`absolute inset-0 bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-5 transition-opacity duration-200`}></div>
                           <div className="relative flex flex-col items-center gap-3">
