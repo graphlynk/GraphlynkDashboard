@@ -16,6 +16,9 @@ import { MessagesContent } from './components/messages/MessagesContent';
 import { HelpContent } from './components/help/HelpContent';
 import { SettingsContent } from './components/settings/SettingsContent';
 import { Toaster } from 'sonner@2.0.3';
+import { BusinessModelDownload } from './components/business-model-download';
+import { KnowledgePanelFlow } from './components/knowledge-panel/KnowledgePanelFlow';
+import { LiveSchemaPreviewShowcase } from './components/knowledge-panel/LiveSchemaPreviewShowcase';
 
 export type TabId = 
   | 'dashboard' 
@@ -28,9 +31,11 @@ export type TabId =
   | 'blog' 
   | 'products' 
   | 'pricing' 
-  | 'messages' 
+  | 'messages'
   | 'help'
-  | 'settings';
+  | 'settings'
+  | 'panel-intake'
+  | 'schema-preview';
 
 export type Tier = 'free' | 'premium' | 'platinum';
 
@@ -66,6 +71,15 @@ export default function App() {
         return <HelpContent tier={tier} />;
       case 'settings':
         return <SettingsContent tier={tier} />;
+      case 'panel-intake':
+        return (
+          <KnowledgePanelFlow
+            onViewProfile={() => setActiveTab('profile')}
+            onExit={() => setActiveTab('dashboard')}
+          />
+        );
+      case 'schema-preview':
+        return <LiveSchemaPreviewShowcase />;
       default:
         return <DashboardContent tier={tier} />;
     }
@@ -108,6 +122,7 @@ export default function App() {
           </main>
         </div>
       </div>
+      <BusinessModelDownload />
     </ThemeProvider>
   );
 }

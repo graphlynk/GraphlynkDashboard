@@ -11,7 +11,8 @@ import {
   CreditCard, 
   MessageSquare, 
   HelpCircle,
-  Settings 
+  Settings,
+  Sparkle
 } from 'lucide-react';
 import { TabId, Tier } from '../App';
 
@@ -26,6 +27,8 @@ const menuItems = [
   { id: 'llm' as TabId, label: 'LLM Visibility', icon: Sparkles, tier: 'platinum' as Tier },
   { id: 'search' as TabId, label: 'Search', icon: Search },
   { id: 'profile' as TabId, label: 'Profile & Links', icon: User },
+  { id: 'panel-intake' as TabId, label: 'Knowledge Panel', icon: Sparkle },
+  { id: 'schema-preview' as TabId, label: 'Schema Preview', icon: Code },
   { id: 'messages' as TabId, label: 'Messages', icon: MessageSquare },
   { id: 'blog' as TabId, label: 'Blog Management', icon: FileText },
   { id: 'keywords' as TabId, label: 'SEO Hub', icon: TrendingUp },
